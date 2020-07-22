@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import dev.mvc.contents.ContentsDAOInter;
+import dev.mvc.tool.Tool;
 
 @Component("dev.mvc.attachfile.AttachfileProc")
 public class AttachfileProc implements AttachfileProcInter {
@@ -50,7 +51,12 @@ public class AttachfileProc implements AttachfileProcInter {
 
   @Override
   public List<AttachfileVO> list_by_contentsno(int contentsno) {
-    List<AttachfileVO> list = this.attachfileDAO.list_by_contentsno(contentsno);
+    List<AttachfileVO> list = attachfileDAO.list_by_contentsno(contentsno);
+    for (AttachfileVO attachfileVO:list) {
+      long fsize = attachfileVO.getFsize();
+      String flabel = Tool.unit(fsize);  // 파일 단위 적용
+      attachfileVO.setFlabel(flabel);
+    }
     return list;
   }
   

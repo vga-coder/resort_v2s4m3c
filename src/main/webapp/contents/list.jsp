@@ -35,7 +35,7 @@
   <DIV class='menu_line' style='clear: both;'></DIV>
   
   <div style='width: 100%;'>
-    <table class="table table-striped" style='width: 100%;'>
+    <table class="table table-striped" style='width: 100%; '>
       <colgroup>
         <col style="width: 15%;"></col>
         <col style="width: 20%;"></col>

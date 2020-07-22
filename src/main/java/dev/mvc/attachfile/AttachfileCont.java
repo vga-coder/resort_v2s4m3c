@@ -1,6 +1,16 @@
 package dev.mvc.attachfile;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -153,6 +163,86 @@ public class AttachfileCont {
     return mav;
   }
   
+  /**
+   * ZIP 압축 후 파일 다운로드
+   * @param request
+   * @param contentsno 파일 목록을 가져올때 사용할 글번호
+   * @return
+   */
+  @RequestMapping(value = "/attachfile/downzip.do", 
+                             method = RequestMethod.GET)
+  public ModelAndView downzip(HttpServletRequest request, int contentsno) {
+    ModelAndView mav = new ModelAndView();
+    
+    // 글번호에 해당하는 파일 목록 산출
+    List<AttachfileVO> attachfile_list = attachfileProc.list_by_contentsno(contentsno);
+    
+    // 실제 저장된 파일명만 추출
+    ArrayList<String> files_array = new ArrayList<String>();
+    for(AttachfileVO attachfileVO:attachfile_list) {
+      files_array.add(attachfileVO.getFupname());
+    }
+    
+    String dir = "/attachfile/storage";
+    String upDir = Tool.getRealPath(request, dir); // 절대 경로
+    
+    // 압축될 파일명, 동시 접속자 다운로드의 충돌 처리
+    String zip = "download_files_" + Tool.getRandomDate() + ".zip"; 
+    String zip_filename = upDir + zip;
+    
+    String[] zip_src = new String[files_array.size()]; // 파일 갯수만큼 배열 선언
+    
+    for (int i=0; i < files_array.size(); i++) {
+      zip_src[i] = upDir + "/" + files_array.get(i); // 절대 경로 조합      
+    }
+ 
+    byte[] buffer = new byte[4096]; // 4 KB
+    
+    try {
+      ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zip_filename));
+      
+      for(int index=0; index < zip_src.length; index++) {
+        FileInputStream in = new FileInputStream(zip_src[index]);
+        
+        Path path = Paths.get(zip_src[index]);
+        String zip_src_file = path.getFileName().toString();
+        // System.out.println("zip_src_file: " + zip_src_file);
+        
+        ZipEntry zipEntry = new ZipEntry(zip_src_file);
+        zipOutputStream.putNextEntry(zipEntry);
+        
+        int length = 0;
+        // 4 KB씩 읽어서 buffer 배열에 저장후 읽은 바이트수를 length에 저장
+        while((length = in.read(buffer)) > 0) {
+          zipOutputStream.write(buffer, 0, length); // 기록할 내용, 내용에서의 시작 위치, 기록할 길이
+          
+        }
+        zipOutputStream.closeEntry();
+        in.close();
+      }
+      zipOutputStream.close();
+      
+      File file = new File(zip_filename);
+      
+      if (file.exists() && file.length() > 0) {
+        System.out.println(zip_filename + " 압축 완료");
+      }
+      
+//      if (file.delete() == true) {
+//        System.out.println(zip_filename + " 파일을 삭제했습니다.");
+//      }
+ 
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+ 
+    // download 서블릿 연결
+    mav.setViewName("redirect:/download2?dir=" + dir + "&filename=" + zip + "&downname=" + zip);    
+    
+    return mav;
+  }
   
 }
 

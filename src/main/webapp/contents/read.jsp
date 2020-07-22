@@ -16,12 +16,11 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 <script type="text/javascript">
   $(function() { // 자동 실행
-	list_by_contentsno_add_view(${contentsVO.contentsno });  // JS의 EL 접근
-
-	  
+    list_by_contentsno_add_view()  // 댓글 목록 출력
+    
     $('#btn_delete_youtube').on('click', youtube_delete_send); 
-    $('#btn_create').on('click', reply_create); // 댓글 등록 
- 
+    $('#btn_create').on('click', reply_create);  // 댓글 등록
+
     if ('${sessionScope.memberno}' != '') { // 로그인된 경우
       // alert('sessionScope.memberno: ' + '${sessionScope.memberno}');
 
@@ -29,28 +28,31 @@
       $('#content', frm_reply).attr('placeholder', '댓글 작성');
     }
 
-     $('#modal_panel').on('keypress', function (event) {
-        //alert("닫기 버튼을 클릭하지 않으셨네요~");
-        var keycode = (event.keyCode ? event.keyCode : event.which);
-        if(keycode == '13'){
-        //alert("ENTER 눌렀네요~");
-          $('#modal_panel_close').click();   
-        }
-      });
+    $('#modal_panel').on('keypress', function (event) {
+      // alert("닫기 버튼을 클릭하지 않으셨네요~");
+      var keycode = (event.keyCode ? event.keyCode : event.which);
+      if(keycode == '13'){
+        // alert("ENTER 눌렀네요~");
+        $('#modal_panel_close').click();  // 모달 창 닫기 
+      }
+    });
 
-     $('#modal_panel_delete').on(
-    		  'shown.bs.modal',function(){
-    			$('#passwd','#frm_reply_delete').focus();
-    		   }
-    	    );
-     $("#addBtn").on("click", list_by_contentsno_add_view);
+    // 댓글 삭제 modal 창이 open 됬을 때 focus 자동 설정
+    $('#modal_panel_delete').on(
+        'shown.bs.modal', function() {
+          $('#passwd', '#frm_reply_delete').focus();  
+        }
+    );
+
+    $("#addBtn").on("click", list_by_contentsno_add_view); // 더보기 버튼 이벤트 등록
   });
 
+  // youtube 삭제 창
   function youtube_delete_modal() {
     $('#modal_panel_youtube').modal();              // 다이얼로그 출력
   }
   
-  // jQuery ajax 요청
+  // youtube 삭제 처리, jQuery ajax 요청
   function youtube_delete_send () {
     // alert('삭제 진행');
     // return;
@@ -94,25 +96,25 @@
     });
   }
 
-  function panel_img(file) {
+  // 첨부 이미지 출력, dir: ../attachfile/storage/, ./storage/main_images/
+  function panel_img(dir, file) {
     var tag = "";
     tag   = "<A href=\"javascript: $('#attachfile_panel').hide();\">"; // 이미지 감추기
-    tag += "  <IMG src='../attachfile/storage/" + file + "' style='width: 100%;'>";
+    tag += "  <IMG src='" + dir + file + "' style='width: 100%;'>";
     tag += "</A>";
 
     $('#attachfile_panel').html(tag);  // 문자열을 태그로 적용
     $('#attachfile_panel').show();      // 패널 출력
   }
 
-  // 댓글 등록 처리
+  //  댓글 등록 처리
   function reply_create() {
-	$('#modal_panel_close').focus();  
-
-	  
+    $('#modal_panel_close').focus();    // 모달 창 닫기
+    
     var frm_reply = $('#frm_reply');
     var params = frm_reply.serialize();
-     //alert('checkId() 호출됨: ' + params);
-     //return;
+    // alert('checkId() 호출됨: ' + params);
+    // return;
     
     if ($('#memberno', frm_reply).val().length == 0) {
       $('#modal_title').html('댓글 등록'); // 제목 
@@ -133,30 +135,36 @@
     
     $.ajax({
       url: "../reply/create.do", // action 대상 주소
-      type: "post",           // get, post
+      type: "post",          // get, post
       cache: false,          // 브러우저의 캐시영역 사용안함.
       async: true,           // true: 비동기
       dataType: "json",   // 응답 형식: json, xml, html...
       data: params,        // 서버로 전달하는 데이터
       success: function(rdata) { // 서버로부터 성공적으로 응답이 온경우
         // alert(rdata);
-        var msg = "";
+        var msg = ""; // 메시지 출력
+        var tag = ""; // 글목록 생성 태그
         
         if (rdata.count > 0) {
           $('#modal_content').attr('class', 'alert alert-success'); // CSS 변경
           msg = "댓글을 등록했습니다.";
-          $('#content',frm_reply).val('');
-          $('#passwd',frm_reply).val('');
-          // list_by_contentsno(${contentsVO.contentsno }) // 목록을 새로 읽어옴.
-          msg += "<DIV style='border-bottom: solid 1px #EEEEEE; margin-bottom: 10px;'>";
-          msg += "<span style='font-weight: bold;'>" + row.id + "</span>";
-          msg += "  " + row.rdate;
+          $('#content', frm_reply).val('');
+          $('#passwd', frm_reply).val('');
+
+          // 하나의 글만 있음으로 배열에서 첫번째 요소만 추출.
+          var row = rdata.replyMemberVO[0]; 
+          // alert(row);
+          tag += "<DIV id='"+row.replyno+"' style='border-bottom: solid 1px #EEEEEE; margin-bottom: 10px;'>";
+          tag += "<span style='font-weight: bold;'>" + row.id + "</span>";
+          tag += "  " + row.rdate;
           if ('${sessionScope.memberno}' == row.memberno) { // 글쓴이 일치여부 확인
-            msg += " <A href='javascript:reply_delete("+row.replyno+")'><IMG src='./images/delete.png'></A>";
+            tag += " <A href='javascript:reply_delete("+row.replyno+")'><IMG src='./images/delete.png'></A>";
           }
-          msg += "  " + "<br>";
-          msg += row.content;
-          msg += "</DIV>";
+          tag += "  " + "<br>";
+          tag += row.content;
+          tag += "</DIV>";
+          // alert(msg);
+          $('#reply_list').prepend(tag);  // reply_list 가장 앞부분에 추가
           
         } else {
           $('#modal_content').attr('class', 'alert alert-danger'); // CSS 변경
@@ -164,41 +172,40 @@
         }
         
         $('#modal_title').html('댓글 등록'); // 제목 
-        $('#modal_content').html(msg);        // 내용
-        $('#modal_panel').modal();              // 다이얼로그 출력
+        $('#modal_content').html(msg);     // 내용
+        $('#modal_panel').modal();           // 다이얼로그 출력
       },
       // Ajax 통신 에러, 응답 코드가 200이 아닌경우, dataType이 다른경우 
       error: function(request, status, error) { // callback 함수
         var msg = 'ERROR request.status: '+request.status + '/ ' + error;
-        console.log(msg);
+        console.log(msg); // Chrome에 출력
       }
     });
   }
 
-//댓글 목록 + 더보기
+  // contentsno 별 소속된 댓글 목록 + 더보기 버튼
   function list_by_contentsno_add_view() {
-	var replyPage = parseInt($("#reply_list").attr("data-replyPage"));
-    // alert(contentsno);
-    var params = 'contentsno=' + ${contentsVO.contentsno} + "&replyPage="+replyPage;
+    var replyPage = parseInt($("#reply_list").attr("data-replyPage")); // 현재 페이지 
+    var params = 'contentsno=' + ${contentsVO.contentsno } + "&replyPage="+replyPage;
 
     $.ajax({
-      url: "../reply/list_by_contentsno_add_view.do", // action 대상 주소
+      url: "../reply/list_by_contentsno_join_add_view.do", // action 대상 주소
       type: "get",           // get, post
       cache: false,          // 브러우저의 캐시영역 사용안함.
       async: true,           // true: 비동기
       dataType: "json",   // 응답 형식: json, xml, html...
       data: params,        // 서버로 전달하는 데이터
       success: function(rdata) { // 서버로부터 성공적으로 응답이 온경우
-    	$("#reply_list").attr("data-replyPage", replyPage+1);
+        $("#reply_list").attr("data-replyPage", replyPage+1);  // 개발자정의 속성 쓰기
         // alert(rdata);
         var msg = '';
         
-        //$('#reply_list').html(''); // 패널 초기화, val(''): 안됨
+        // $('#reply_list').html(''); // 패널 초기화, val(''): 안됨
         
         for (i=0; i < rdata.list.length; i++) {
           var row = rdata.list[i];
           
-          msg += "<DIV style='border-bottom: solid 1px #EEEEEE; margin-bottom: 10px;'>";
+          msg += "<DIV id='"+row.replyno+"' style='border-bottom: solid 1px #EEEEEE; margin-bottom: 10px;'>";
           msg += "<span style='font-weight: bold;'>" + row.id + "</span>";
           msg += "  " + row.rdate;
           if ('${sessionScope.memberno}' == row.memberno) { // 글쓴이 일치여부 확인
@@ -217,19 +224,18 @@
         console.log(msg);
       }
     });
+    
   }
 
-  //댓글 삭제 레이어 출력
+  // 댓글 삭제 레이어 출력
   function reply_delete(replyno) {
-	
     // alert('replyno: ' + replyno);
     var frm_reply_delete = $('#frm_reply_delete');
     $('#replyno', frm_reply_delete).val(replyno); // 삭제할 댓글 번호 저장
     $('#modal_panel_delete').modal();               // 삭제폼 다이얼로그 출력
-
   }
 
-//삭제 처리
+  // 댓글 삭제 처리
   function reply_delete_proc(replyno) {
     // alert('replyno: ' + replyno);
     var params = $('#frm_reply_delete').serialize();
@@ -249,23 +255,23 @@
 
             $('#btn_frm_reply_delete_close').trigger("click"); // 삭제폼 닫기, click 발생 
             
-            list_by_contentsno_add_view(${contentsVO.contentsno }); // 목록을 다시 읽어옴
-            
+            $('#' + replyno).remove(); // 태그 삭제
+              
             return; // 함수 실행 종료
           } else {  // 삭제 실패
             msg = "패스 워드는 일치하나 댓글 삭제에 실패했습니다. <br>";
             msg += " 다시한번 시도해주세요."
           }
         } else { // 패스워드 일치하지 않음.
-          //alert('패스워드 불일치');
-          //return;
-          $('#passwd','#frm_reply_delete').focus();
+          // alert('패스워드 불일치');
+          // return;
+          
           msg = "패스워드가 일치하지 않습니다.";
           $('#modal_panel_delete_msg').html(msg);
 
-
+          $('#passwd', '#frm_reply_delete').focus();
+          
         }
-        
       },
       // Ajax 통신 에러, 응답 코드가 200이 아닌경우, dataType이 다른경우 
       error: function(request, status, error) { // callback 함수
@@ -275,7 +281,7 @@
     });
 
     
-  }
+  }  
 </script>
 </head>
 
@@ -326,7 +332,7 @@
           <p id='modal_content'></p>  <!-- 내용 -->
         </div>
         <div class="modal-footer">
-          <button type="button" id="modal_panel_close" class="btn btn-default" data-dismiss="modal">닫기</button>
+          <button type="button" id='modal_panel_close' class="btn btn-default" data-dismiss="modal">닫기</button>
         </div>
       </div>
     </div>
@@ -342,25 +348,24 @@
           <h4 class="modal-title">댓글 삭제</h4><!-- 제목 -->
         </div>
         <div class="modal-body">
-          <form name='frm_reply_delete' id='frm_reply_delete' method='POST'>
+          <form name='frm_reply_delete' id='frm_reply_delete'>
             <input type='hidden' name='replyno' id='replyno' value=''>
             
             <label>패스워드</label>
             <input type='password' name='passwd' id='passwd' class='form-control'>
-            <div id="modal_panel_delete_msg" style='color:red; font-size:1.1em;'></div>
-           </form>
-          </div>
-            <div class="modal-footer">
-              <button type='button' class='btn btn-danger' 
-                           onclick="reply_delete_proc(frm_reply_delete.replyno.value);frm_reply_delete.passwd.value='';">삭제</button>
-         
-              <button type="button" class="btn btn-default" data-dismiss="modal" 
+            <DIV id='modal_panel_delete_msg' style='color: #AA0000; font-size: 1.1em;'></DIV>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type='button' class='btn btn-danger' 
+                       onclick="reply_delete_proc(frm_reply_delete.replyno.value); frm_reply_delete.passwd.value='';">삭제</button>
+
+          <button type="button" class="btn btn-default" data-dismiss="modal" 
                        id='btn_frm_reply_delete_close'>Close</button>
         </div>
       </div>
     </div>
-  </div> <!-- 댓글 삭제폼 종료 -->
-  
+  </div> <!-- 댓글 삭제폼 종료 -->  
   
   <DIV class='title_line'>
     ${cateVO.name }
@@ -447,12 +452,18 @@
             <DIV id='attachfile_panel' style="width: 70%; margin: 0px auto;"></DIV> <!-- 원본 이미지 출력 -->
           </li>
           <li class="li_none" style='text-align: center;' >
+            <c:set var="file1" value="${contentsVO.file1.toLowerCase() }" />
+            <c:set var="thumb1" value="${contentsVO.thumb1.toLowerCase() }" />
+            <c:if test="${thumb1.endsWith('jpg') || thumb1.endsWith('png') || thumb1.endsWith('gif')}">
+              <A href="javascript:panel_img('./storage/main_images/', '${file1 }')"><IMG src='./storage/main_images/${thumb1 }' style='margin-top: 2px; width: 120px; height: 80px;'></A>
+            </c:if>
+            
             <c:forEach var="attachfileVO" items="${attachfile_list }">
               <c:set var="thumb" value="${attachfileVO.thumb.toLowerCase() }" />
               
               <c:choose>
                 <c:when test="${thumb.endsWith('jpg') || thumb.endsWith('png') || thumb.endsWith('gif')}">
-                  <A href="javascript:panel_img('${attachfileVO.fname }')"><IMG src='../attachfile/storage/${thumb }' style='margin-top: 2px;'></A>
+                  <A href="javascript:panel_img('../attachfile/storage/', '${attachfileVO.fname }')"><IMG src='../attachfile/storage/${thumb }' style='margin-top: 2px;'></A>
                 </c:when>
               </c:choose>
             </c:forEach>
@@ -502,29 +513,41 @@
           
             </DIV>
           </li>
-          
+          <li class="li_none">
+            <DIV>
+              <span class="glyphicon glyphicon-download-alt"></span>
+              파일명을 클릭하면 다운로드가 가능합니다.
+              <A href='${pageContext.request.contextPath}/attachfile/downzip.do?contentsno=${contentsno}'><IMG src='./images/zip.png' title='zip 파일 다운로드'></A> 
+            </DIV>
+            <DIV>
+              <c:forEach var="attachfileVO" items="${attachfile_list }">
+                <c:set var="fname" value="${attachfileVO.fname.toLowerCase() }" />
+                <A href='${pageContext.request.contextPath}/download2?dir=/attachfile/storage&filename=${attachfileVO.fupname}&downname=${attachfileVO.fname}'>${attachfileVO.fname}</A>(${attachfileVO.flabel})               
+              </c:forEach>
+            </DIV>  
+          </li>
         </ul>
       </fieldset>
   </FORM>
   
   <!-- 댓글 영역 시작 -->
   <DIV style='width: 80%; margin: 0px auto;'>
-    <HR>
-    <FORM name='frm_reply' id='frm_reply'> <%-- 댓글 등록 폼 --%>
-      <input type='hidden' name='contentsno' id='contentsno' value='${contentsno}'>
-      <input type='hidden' name='memberno' id='memberno' value='${sessionScope.memberno}'>
+      <HR>
+      <FORM name='frm_reply' id='frm_reply'> <%-- 댓글 등록 폼 --%>
+          <input type='hidden' name='contentsno' id='contentsno' value='${contentsno}'>
+          <input type='hidden' name='memberno' id='memberno' value='${sessionScope.memberno}'>
+          
+          <textarea name='content' id='content' style='width: 100%; height: 60px;' placeholder="댓글 작성, 로그인해야 등록 할 수 있습니다."></textarea>
+          <input type='password' name='passwd' id='passwd' placeholder="비밀번호">
+          <button type='button' id='btn_create'>등록</button>
+      </FORM>
+      <HR>
+      <DIV id='reply_list' data-replyPage='1'>  <%-- 댓글 목록 --%>
       
-      <textarea name='content' id='content' style='width: 100%; height: 60px;' placeholder="댓글 작성, 로그인해야 등록 할 수 있습니다."></textarea>
-      <input type='password' name='passwd' id='passwd' placeholder="비밀번호">
-      <button type='button' id='btn_create'>등록</button>
-    </FORM>
-    <HR>
-    <DIV id='reply_list' data-replyPage='1'>  <%-- 댓글 목록 --%>
-    
-    </DIV>
-    <DIV id='reply_list_btn' style='border: solid 1px #AAAAAA; margin: 0px auto; width: 70%; background-color: #AAAAAA;'>
-    <button id='addBtn' style='width: 100%;'>더보기 ▽</button>     
-    </DIV>  
+      </DIV>
+      <DIV id='reply_list_btn' style='border: solid 1px #EEEEEE; margin: 0px auto; width: 100%; background-color: #EEFFFF;'>
+          <button id='addBtn' style='width: 100%;'>더보기 ▽</button>
+      </DIV>  
     
   </DIV>
   
@@ -535,3 +558,4 @@
 
 </html>
  
+
